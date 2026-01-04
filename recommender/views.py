@@ -108,27 +108,38 @@ def seed_data(request):
     return HttpResponse(response_html.encode())
 
 def upload_from_csv(request):
-    # Path to your CSV file in the assets folder
     csv_file_path = os.path.join(settings.BASE_DIR, 'attached_assets', 'products.csv')
 
     if not os.path.exists(csv_file_path):
-        return HttpResponse(f"Error: CSV file not found at {csv_file_path}. Check if folder is named 'attached_assets'".encode())
+        return HttpResponse(f"Error: CSV not found at {csv_file_path}".encode())
 
-    # Clear old data to prevent duplicates
     Product.objects.all().delete()
+
+    # We'll keep track of IDs we've already added in this run
+    processed_ids = set()
+    count = 0
 
     try:
         with open(csv_file_path, mode='r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
+                p_id = row.get('product_id')
+
+                # SKIP if the ID is missing or already processed
+                if not p_id or p_id in processed_ids:
+                    continue
+
                 Product.objects.create(
-                    product_id=row.get('product_id'), # Match CSV column name
+                    product_id=p_id,
                     product_name=row.get('product_name'),
                     category=row.get('category'),
                     discounted_price=row.get('discounted_price'),
                     about_product=row.get('about_product'),
                     img_link=row.get('img_link')
                 )
-        return HttpResponse("<h1>Success!</h1><p>Data uploaded from CSV.</p>".encode())
+                processed_ids.add(p_id)
+                count += 1
+
+        return HttpResponse(f"<h1>Success!</h1><p>Uploaded {count} unique products from CSV.</p>".encode())
     except Exception as e:
         return HttpResponse(f"Error processing CSV: {str(e)}".encode())
