@@ -46,3 +46,17 @@ def product_detail(request, product_id):
         'product': product,
         'recommendations': recommendations
     })
+
+from django.http import HttpResponse
+from .models import Product
+
+def seed_data(request):
+    Product.objects.all().delete()
+    data = [
+        {"n": "4K HDMI Cable", "d": "Gold-plated 6ft cable for ultra HD gaming.", "c": "Electronics", "p": 14.99, "i": "https://images.unsplash.com/photo-1555529731-118a5bb67af7?w=400"},
+        {"n": "USB-C Fast Charger", "d": "Braided 2-meter cable for fast charging.", "c": "Electronics", "p": 19.50, "i": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400"},
+        {"n": "Wireless Headphones", "d": "Noise cancelling over-ear headphones.", "c": "Tech", "p": 120.00, "i": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400"},
+    ]
+    for item in data:
+        Product.objects.create(name=item['n'], description=item['d'], category=item['c'], price=item['p'], image_url=item['i'])
+    return HttpResponse("Data seeded successfully! You can now go to your homepage.")
