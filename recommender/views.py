@@ -5,12 +5,14 @@ from .engine import get_recommendations
 import random
 
 def home(request):
-    # Show some random products on the home page so it's not empty
+    """Displays the home page with a few random product suggestions."""
     all_products = Product.objects.all()
+    # Safely pick 3 random products if they exist
     sample_products = random.sample(list(all_products), min(len(all_products), 3)) if all_products.exists() else []
     return render(request, 'recommender/search.html', {'recommendations': sample_products})
 
 def search(request):
+    """Handles the search logic and ML recommendations."""
     query = request.GET.get('query')
     best_match = None
     recommendations = []
@@ -18,21 +20,24 @@ def search(request):
     is_fallback = False
 
     if query:
-        # Looking for product_name to match your seed data
+        # Search using the correct field name: product_name
         best_match = Product.objects.filter(product_name__icontains=query).first()
 
         if not best_match:
+            # Fallback to category search
             best_match = Product.objects.filter(category__icontains=query).first()
             if best_match:
-                message = f"We couldn't find an exact match for '{query}', but here is a possible match from a similar category."
+                message = f"We couldn't find an exact match for '{query}', but check this out!"
                 is_fallback = True
             else:
+                # If nothing found, show random trending items
                 all_products = list(Product.objects.all())
                 if all_products:
                     recommendations = random.sample(all_products, min(5, len(all_products)))
-                    message = f"No results found for '{query}'. Check out these trending products instead!"
+                    message = f"No results found for '{query}'. Here are some trending products!"
                     is_fallback = True
 
+        # Get ML-based recommendations if we found a match
         if best_match and not recommendations:
             recommendations = get_recommendations(best_match)
 
@@ -45,6 +50,7 @@ def search(request):
     })
 
 def product_detail(request, product_id):
+    """Displays the details for a specific product."""
     product = get_object_or_404(Product, product_id=product_id)
     recommendations = get_recommendations(product)
     return render(request, 'recommender/product_detail.html', {
@@ -52,26 +58,48 @@ def product_detail(request, product_id):
         'recommendations': recommendations
     })
 
-# --- SEED DATA FUNCTION ---
 def seed_data(request):
-    # Clear existing data
+    """Clears the database and adds fresh sample data matching your models.py."""
+    # This deletes old data to prevent duplicates
     Product.objects.all().delete()
 
     data = [
-        {"id": "c1", "n": "4K HDMI Cable", "d": "Gold-plated 6ft cable for ultra HD gaming.", "c": "Electronics", "p": 14.99, "i": "https://images.unsplash.com/photo-1555529731-118a5bb67af7?w=400"},
-        {"id": "c2", "n": "USB-C Fast Charger", "d": "Braided 2-meter cable for fast charging.", "c": "Electronics", "p": 19.50, "i": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400"},
-        {"id": "h1", "n": "Wireless Headphones", "d": "Noise cancelling over-ear headphones.", "c": "Tech", "p": 120.00, "i": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400"},
-        {"id": "m1", "n": "Gaming Mouse", "d": "High precision RGB gaming mouse.", "c": "Tech", "p": 45.00, "i": "https://images.unsplash.com/photo-1527814732105-9d2c5bb71055?w=400"},
+        {
+            "id": "item_001", 
+            "name": "4K Ultra HD HDMI Cable", 
+            "cat": "Electronics|Accessories|Cables", 
+            "price": "₹899", 
+            "about": "High-speed 6ft gold-plated HDMI cable for gaming and 4K video.", 
+            "img": "https://images.unsplash.com/photo-1555529731-118a5bb67af7?w=500"
+        },
+        {
+            "id": "item_002", 
+            "name": "Braided USB-C Fast Charger", 
+            "cat": "Electronics|Mobile|Charging", 
+            "price": "₹1,200", 
+            "about": "Durable 2-meter braided cable supports 65W fast charging.", 
+            "img": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=500"
+        },
+        {
+            "id": "item_003", 
+            "name": "Noise Cancelling Headphones", 
+            "cat": "Electronics|Audio|Headphones", 
+            "price": "₹4,999", 
+            "about": "Over-ear Bluetooth headphones with active noise cancellation and 40h battery.", 
+            "img": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500"
+        }
     ]
 
     for item in data:
         Product.objects.create(
             product_id=item['id'],
-            product_name=item['n'],
-            description=item['d'],
-            category=item['c'],
-            price=item['p'],
-            image_url=item['i']
+            product_name=item['name'],
+            category=item['cat'],
+            discounted_price=item['price'],
+            about_product=item['about'],
+            img_link=item['img']
         )
 
-    return HttpResponse("<h1>Success!</h1><p>DirectFind database has been seeded. <a href='/'>Go to Home</a></p>")
+    # .encode() fixes the 'bytes' warning in the Replit editor
+    response_html = "<h1>Success!</h1><p>Database seeded successfully. <a href='/'>Go to Home</a></p>"
+    return HttpResponse(response_html.encode())
