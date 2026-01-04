@@ -5,6 +5,7 @@ from recommender import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
+    path('upload-csv/', views.upload_from_csv, name='upload_csv'),
     path('seed-my-data-123/', views.seed_data),
     path('search/', views.search, name='search'),
     path('product/<str:product_id>/', views.product_detail, name='product_detail'),

@@ -3,6 +3,9 @@ from django.http import HttpResponse
 from .models import Product
 from .engine import get_recommendations
 import random
+import csv
+import os
+from django.conf import settings
 
 def home(request):
     """Displays the home page with a few random product suggestions."""
@@ -103,3 +106,29 @@ def seed_data(request):
     # .encode() fixes the 'bytes' warning in the Replit editor
     response_html = "<h1>Success!</h1><p>Database seeded successfully. <a href='/'>Go to Home</a></p>"
     return HttpResponse(response_html.encode())
+
+def upload_from_csv(request):
+    # Path to your CSV file in the assets folder
+    csv_file_path = os.path.join(settings.BASE_DIR, 'attached_assets', 'products.csv')
+
+    if not os.path.exists(csv_file_path):
+        return HttpResponse(f"Error: CSV file not found at {csv_file_path}. Check if folder is named 'attached_assets'".encode())
+
+    # Clear old data to prevent duplicates
+    Product.objects.all().delete()
+
+    try:
+        with open(csv_file_path, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                Product.objects.create(
+                    product_id=row.get('product_id'), # Match CSV column name
+                    product_name=row.get('product_name'),
+                    category=row.get('category'),
+                    discounted_price=row.get('discounted_price'),
+                    about_product=row.get('about_product'),
+                    img_link=row.get('img_link')
+                )
+        return HttpResponse("<h1>Success!</h1><p>Data uploaded from CSV.</p>".encode())
+    except Exception as e:
+        return HttpResponse(f"Error processing CSV: {str(e)}".encode())
