@@ -143,3 +143,23 @@ def upload_from_csv(request):
         return HttpResponse(f"<h1>Success!</h1><p>Uploaded {count} unique products from CSV.</p>".encode())
     except Exception as e:
         return HttpResponse(f"Error processing CSV: {str(e)}".encode())
+
+def run_manual_upload():
+    """System function to auto-seed data without needing a browser."""
+    csv_file_path = os.path.join(settings.BASE_DIR, 'attached_assets', 'products.csv')
+    if os.path.exists(csv_file_path):
+        Product.objects.all().delete()
+        with open(csv_file_path, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                Product.objects.get_or_create(
+                    product_id=row.get('product_id'),
+                    defaults={
+                        'product_name': row.get('product_name'),
+                        'category': row.get('category'),
+                        'discounted_price': row.get('discounted_price'),
+                        'about_product': row.get('about_product'),
+                        'img_link': row.get('img_link'),
+                    }
+                )
+        print("Auto-seed complete!")
